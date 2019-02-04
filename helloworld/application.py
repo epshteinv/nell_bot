@@ -5,13 +5,21 @@ from helloworld.flaskrun import flaskrun
 
 application = Flask(__name__)
 
-@application.route('/', methods=['GET'])
-def get():
-    return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
+bot_token = 665191062:AAGZuAnJGkIRQADm416VJ0tT
 
-@application.route('/', methods=['POST'])
-def post():
-    return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
+def get_url(method):
+  return "https://api.telegram.org/bot{}/{}".format(bot_token,method)
 
-if __name__ == '__main__':
-    flaskrun(application)
+def process_message(update):
+    data = {}
+    data["chat_id"] = update["message"]["from"]["id"]
+    data["text"] = "I can hear you!"
+    r = requests.post(get_url("sendMessage"), data=data)
+
+@app.route("/{}".format(bot_token), methods=["POST"])
+def process_update():
+    if request.method == "POST":
+        update = request.get_json()
+        if "message" in update:
+            process_message(update)
+        return "ok!", 200
