@@ -3,7 +3,7 @@ import json
 from flask import Flask, Response
 from helloworld.flaskrun import flaskrun
 import requests
-from flask import Flask, request
+
 
 application = Flask(__name__)
 
