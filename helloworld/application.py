@@ -5,7 +5,7 @@ from helloworld.flaskrun import flaskrun
 
 application = Flask(__name__)
 
-bot_token = 665191062:AAGZuAnJGkIRQADm416VJ0tT
+bot_token = '665191062:AAGZuAnJGkIRQADm416VJ0tT'
 
 def get_url(method):
   return "https://api.telegram.org/bot{}/{}".format(bot_token,method)
