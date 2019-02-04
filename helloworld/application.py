@@ -1,66 +1,62 @@
 #!flask/bin/python
-import json
-from flask import Flask, Response
-from helloworld.flaskrun import flaskrun
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import logging
-
-# Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-
-logger = logging.getLogger(__name__)
+import requests  
+from bottle import Bottle, response, request as bottle_request
 
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
-def start(bot, update):
-    """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi!')
+class BotHandlerMixin:  
+    BOT_URL = None
+
+    def get_chat_id(self, data):
+        """
+        Method to extract chat id from telegram request.
+        """
+        chat_id = data['message']['chat']['id']
+
+        return chat_id
+
+    def get_message(self, data):
+        """
+        Method to extract message id from telegram request.
+        """
+        message_text = data['message']['text']
+
+        return message_text
+
+    def send_message(self, prepared_data):
+        """
+        Prepared data should be json which includes at least `chat_id` and `text`
+        """       
+        message_url = self.BOT_URL + 'sendMessage'
+        requests.post(message_url, json=prepared_data)
 
 
-def help(bot, update):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+class TelegramBot(BotHandlerMixin, Bottle):  
+    BOT_URL = '<a class="vglnk" href="https://api.telegram.org/bot000000000:aaaaaaaaaaaaaaaaaaaaaaaaaa/" rel="nofollow"><span>https</span><span>://</span><span>api</span><span>.</span><span>telegram</span><span>.</span><span>org</span><span>/</span><span>bot000000000</span><span>:</span><span>aaaaaaaaaaaaaaaaaaaaaaaaaa</span><span>/</span></a>'
 
+    def __init__(self, *args, **kwargs):
+        super(TelegramBot, self).__init__()
+        self.route('/', callback=self.post_handler, method="POST")
 
-def echo(bot, update):
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
+    def change_text_message(self, text):
+        return text[::-1]
 
+    def prepare_data_for_answer(self, data):
+        message = self.get_message(data)
+        answer = self.change_text_message(message)
+        chat_id = self.get_chat_id(data)
+        json_data = {
+            "chat_id": chat_id,
+            "text": answer,
+        }
 
-def error(bot, update, error):
-    """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
+        return json_data
 
+    def post_handler(self):
+        data = bottle_request.json
+        answer_data = self.prepare_data_for_answer(data)
+        self.send_message(answer_data)
 
-def main():
-    """Start the bot."""
-    # Create the EventHandler and pass it your bot's token.
-    updater = Updater("TOKEN")
-
-    # Get the dispatcher to register handlers
-    dp = updater.dispatcher
-
-    # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
-
-    # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, echo))
-
-    # log all errors
-    dp.add_error_handler(error)
-
-    # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
-
+        return response
 
 if __name__ == '__main__':
-    main()
+    flaskrun(application)
